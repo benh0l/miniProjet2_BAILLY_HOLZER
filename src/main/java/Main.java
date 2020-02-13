@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -6,10 +7,7 @@ import java.util.List;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.RowFactory;
-import org.apache.spark.sql.SQLContext;
+import org.apache.spark.sql.*;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
@@ -24,36 +22,36 @@ public class Main {
     public static void main(String[] args) throws JsonParseException, JsonMappingException, IOException{
 
         SparkConf conf = new SparkConf().setAppName("test").setMaster("local");
-
         JavaSparkContext sc = new JavaSparkContext(conf);
+        SparkSession spark = SparkSession
+                .builder()
+                .appName("SparkSessionExample")
+                .getOrCreate();
         SQLContext sqlContext = new org.apache.spark.sql.SQLContext(sc);
 
-        JavaRDD<Row> verRow = sc.parallelize(Arrays.asList(RowFactory.create(1,"A"),RowFactory.create(2,"B")));
-        JavaRDD<Row> edgRow = sc.parallelize(Arrays.asList(RowFactory.create(1,2,"Edge")));
+        StructType verSchema = new StructType().add("id", "int").add("Name", "string").add("City", "string").add("Country", "string").add("IATA", "string").add("ICAO", "string")
+                .add("Latitude", "double").add("Longitude", "double").add("Altitude", "int").add("Timezone", "int")
+                .add("DST", "string").add("Tz database time zone", "string").add("Type", "string").add("Source", "string");
 
-        List<StructField> verFields = new ArrayList<StructField>();
-        verFields.add(DataTypes.createStructField("id",DataTypes.IntegerType, true));
-        verFields.add(DataTypes.createStructField("name",DataTypes.StringType, true));
+        Dataset<Row> verFields= spark.read().option("mode", "DROPMALFORMED").schema(verSchema).csv("src/main/resources/airports.dat");
 
-        List<StructField> EdgFields = new ArrayList<StructField>();
-        EdgFields.add(DataTypes.createStructField("fromId",DataTypes.IntegerType, true));
-        EdgFields.add(DataTypes.createStructField("toId",DataTypes.IntegerType, true));
-        EdgFields.add(DataTypes.createStructField("name",DataTypes.StringType, true));
+        StructType edgSchema = new StructType().add("airline", "string").add("airlineId", "int").add("sourceAirport", "string").add("sourceAirportId", "int").add("destinationAirport", "string").add("destinationAirportId", "int")
+                .add("codeShare", "string").add("stops", "int").add("equipment", "string");
 
-        StructType verSchema = DataTypes.createStructType(verFields);
-        StructType edgSchema = DataTypes.createStructType(EdgFields);
+        Dataset<Row> edgFields = spark.read().option("mode", "DROPMALFORMED").schema(edgSchema).csv("src/main/resources/routes.dat");
 
-        Dataset<Row> verDF = sqlContext.createDataFrame(verRow, verSchema);
-        Dataset<Row> edgDF = sqlContext.createDataFrame(edgRow, edgSchema);
-
-        GraphFrame g = new GraphFrame(verDF,edgDF);
+        System.out.println("-----------------GRAPHFRAME-----------------");
+        GraphFrame g = new GraphFrame(verFields,edgFields);
         g.vertices().show();
         g.edges().show();
         g.persist(StorageLevel.MEMORY_AND_DISK());
 
+        System.out.println("----------------QUESTION 5----------------");
         //Question 5
+        /*
         Dataset<Row> degrees = g.degrees();
         degrees.show(false);
+        */
     }
 
 }
