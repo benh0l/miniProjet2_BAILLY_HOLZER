@@ -89,6 +89,12 @@ public class Main {
         //Question 10
         System.out.println("Airports count: "+g.vertices().count());
         System.out.println("Trips count: "+g.edges().count());
+
+
+
+        System.out.println("----------------QUESTION 11----------------");
+        //Question 11
+        Dataset<Row> delay = spark.read().format("csv").option("header", "true").load("q11-12");
     }
 
 }
