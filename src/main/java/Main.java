@@ -9,6 +9,7 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.storage.StorageLevel;
@@ -17,6 +18,9 @@ import org.graphframes.GraphFrame;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import org.graphframes.lib.TriangleCount;
+
+import static org.apache.spark.sql.types.DataTypes.DoubleType;
+import static org.apache.spark.sql.types.DataTypes.StringType;
 
 public class Main {
 
@@ -27,6 +31,8 @@ public class Main {
         SparkSession spark = SparkSession
                 .builder()
                 .appName("SparkSessionExample")
+                .config("spark.sql.warehouse.dir", "/file:C:/temp")
+                .config("spark.sql.crossJoin.enabled", true)
                 .getOrCreate();
         SQLContext sqlContext = new org.apache.spark.sql.SQLContext(sc);
 
@@ -96,13 +102,66 @@ public class Main {
 
 
         System.out.println("----------------QUESTION 11_1----------------");
-        //Question 11
-        Dataset<Row> delay = spark.read().format("csv").option("header", "true").load("src/main/resources/q11-12.csv");
+        //Question 11_1
 
-        delay = delay.filter("ORIGIN == 'SFO'").orderBy(
+        StructType delaySchema = new StructType()
+                .add("ORIGIN_AIRPORT_ID", "string")
+                .add("ORIGIN", "string")
+                .add("DEST_AIRPORT_ID", "string")
+                .add("DEST", "string")
+                .add("DEP_DELAY", "double")
+                .add("DEP_DELAY_NEW", "double")
+                .add("DEP_DEL15", "double");
+
+        Dataset<Row> delay = spark.read().option("header", true).schema(delaySchema).csv("src/main/resources/q11-12.csv");
+
+        Dataset<Row> delay2 = delay.filter("ORIGIN == 'SFO'").orderBy(
                 functions.col("DEP_DELAY").desc()
         );
-        delay.show(false);
+        delay2.show(false);
+
+        System.out.println("----------------QUESTION 11_2----------------");
+        //Question 11_2
+
+        Dataset<Row> delay3 = delay.select("ORIGIN", "DEST","DEP_DELAY")
+                .filter("ORIGIN = 'SEA'")
+                .groupBy("DEST")
+                .avg("DEP_DELAY")
+                .filter("avg(DEP_DELAY) > 10")
+                .orderBy(functions.col("avg(DEP_DELAY)").desc());
+        delay3.show(false);
+
+        System.out.println("----------------QUESTION 12_1----------------");
+        //Question 12_1
+
+        Dataset<Row> delay4 = delay.filter("ORIGIN = 'SFO'")
+                .filter("DEST = 'JAC'")
+                .join(
+                        delay.filter("ORIGIN = 'JAC'")
+                                .filter("DEST = 'SEA'")
+                );
+        delay4.show(false);
+
+        System.out.println("----------------QUESTION 12_2----------------");
+        //Question 12_2
+
+        Dataset<Row> delay5 = delay.select(functions.col("ORIGIN_AIRPORT_ID"),functions.col("ORIGIN"), functions.col("DEST_AIRPORT_ID"), functions.col("DEST"), functions.col("DEP_DELAY").as("delay1"))
+                .filter("ORIGIN = 'SFO'")
+                .filter("DEST = 'JAC'")
+                .join(
+                        delay.select(functions.col("ORIGIN_AIRPORT_ID"),functions.col("ORIGIN"), functions.col("DEST_AIRPORT_ID"), functions.col("DEST"), functions.col("DEP_DELAY").as("delay2"))
+                                .filter("ORIGIN = 'JAC'")
+                                .filter("DEST = 'SEA'")
+                ).filter("delay1 + delay2 < -5");
+        delay5.show(false);
+
+        System.out.println("----------------QUESTION 12_3----------------");
+        //Question 12_3
+
+        Dataset<Row> delay6 = delay.select("ORIGIN", "DEST")
+                .distinct()
+                .filter("ORIGIN = 'SFO'");
+        delay6.show(false);
     }
 
 }
