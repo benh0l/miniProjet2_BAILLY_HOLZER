@@ -80,10 +80,13 @@ public class Main {
 
         System.out.println("----------------QUESTION 9----------------");
         //Question 9
+        /*
         Dataset<Row> triplet = g.triangleCount().run();
         triplet.orderBy(
                 functions.col("count").desc()
         ).show(false);
+        */
+
 
         System.out.println("----------------QUESTION 10----------------");
         //Question 10
@@ -94,7 +97,11 @@ public class Main {
 
         System.out.println("----------------QUESTION 11----------------");
         //Question 11
-        Dataset<Row> delay = spark.read().format("csv").option("header", "true").load("q11-12");
+        Dataset<Row> delay = spark.read().format("csv").option("header", "true").load("src/main/resources/q11-12.csv");
+        delay.select("ORIGIN","DEST").where("ORIGIN == SFO").orderBy(
+                functions.col("DEP_DELAY").desc()
+        );
+        delay.show(false);
     }
 
 }
