@@ -16,10 +16,11 @@ import org.graphframes.GraphFrame;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import org.graphframes.lib.TriangleCount;
 
 public class Main {
 
-    public static void main(String[] args) throws JsonParseException, JsonMappingException, IOException{
+    public static void main(String[] args) throws JsonParseException, JsonMappingException, IOException {
 
         SparkConf conf = new SparkConf().setAppName("test").setMaster("local");
         JavaSparkContext sc = new JavaSparkContext(conf);
@@ -33,7 +34,7 @@ public class Main {
                 .add("Latitude", "double").add("Longitude", "double").add("Altitude", "int").add("Timezone", "int")
                 .add("DST", "string").add("Tz database time zone", "string").add("Type", "string").add("Source", "string");
 
-        Dataset<Row> verFields= spark.read().option("mode", "DROPMALFORMED").schema(verSchema).csv("src/main/resources/airports.dat");
+        Dataset<Row> verFields = spark.read().option("mode", "DROPMALFORMED").schema(verSchema).csv("src/main/resources/airports.dat");
 
         StructType edgSchema = new StructType().add("airline", "string").add("airlineId", "int").add("sourceAirport", "string").add("src", "int").add("destinationAirport", "string").add("dst", "int")
                 .add("codeShare", "string").add("stops", "int").add("equipment", "string");
@@ -41,7 +42,7 @@ public class Main {
         Dataset<Row> edgFields = spark.read().option("mode", "DROPMALFORMED").schema(edgSchema).csv("src/main/resources/routes.dat");
 
         System.out.println("-----------------QUESTION 3 & 4-----------------");
-        GraphFrame g = new GraphFrame(verFields,edgFields);
+        GraphFrame g = new GraphFrame(verFields, edgFields);
 
         System.out.println("----------------VERTICES----------------");
         g.vertices().show();
@@ -65,6 +66,29 @@ public class Main {
         Dataset<Row> outdegrees = g.outDegrees();
         outdegrees.show(false);
 
+        System.out.println("----------------QUESTION 8----------------");
+        //Question 8
+        Dataset<Row> inout = indegrees.join(outdegrees, "id")
+                .select(
+                        functions.col("id"),
+                        functions.col("indegree").divide(functions.col("outdegree")).as("transfertsRatio")
+                )
+                .orderBy(
+                        functions.abs(functions.col("transfertsRatio").minus(1))
+                );
+        inout.show(false);
+
+        System.out.println("----------------QUESTION 9----------------");
+        //Question 9
+        Dataset<Row> triplet = g.triangleCount().run();
+        triplet.orderBy(
+                functions.col("count").desc()
+        ).show(false);
+
+        System.out.println("----------------QUESTION 10----------------");
+        //Question 10
+        System.out.println("Airports count: "+g.vertices().count());
+        System.out.println("Trips count: "+g.edges().count());
     }
 
 }
