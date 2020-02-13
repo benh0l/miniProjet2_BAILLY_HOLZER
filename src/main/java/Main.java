@@ -35,23 +35,28 @@ public class Main {
 
         Dataset<Row> verFields= spark.read().option("mode", "DROPMALFORMED").schema(verSchema).csv("src/main/resources/airports.dat");
 
-        StructType edgSchema = new StructType().add("airline", "string").add("airlineId", "int").add("sourceAirport", "string").add("sourceAirportId", "int").add("destinationAirport", "string").add("destinationAirportId", "int")
+        StructType edgSchema = new StructType().add("airline", "string").add("airlineId", "int").add("sourceAirport", "string").add("src", "int").add("destinationAirport", "string").add("dst", "int")
                 .add("codeShare", "string").add("stops", "int").add("equipment", "string");
 
         Dataset<Row> edgFields = spark.read().option("mode", "DROPMALFORMED").schema(edgSchema).csv("src/main/resources/routes.dat");
 
-        System.out.println("-----------------GRAPHFRAME-----------------");
+        System.out.println("-----------------QUESTION 3 & 4-----------------");
         GraphFrame g = new GraphFrame(verFields,edgFields);
+
+        System.out.println("----------------VERTICES----------------");
         g.vertices().show();
+
+        System.out.println("----------------EDGES----------------");
         g.edges().show();
         g.persist(StorageLevel.MEMORY_AND_DISK());
 
         System.out.println("----------------QUESTION 5----------------");
         //Question 5
-        /*
         Dataset<Row> degrees = g.degrees();
         degrees.show(false);
-        */
+
+        
+
     }
 
 }
