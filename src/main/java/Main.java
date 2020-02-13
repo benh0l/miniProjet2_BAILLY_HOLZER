@@ -65,6 +65,19 @@ public class Main {
         Dataset<Row> outdegrees = g.outDegrees();
         outdegrees.show(false);
 
+        System.out.println("----------------QUESTION 8----------------");
+        //Question 8
+        Dataset<Row> inout = indegrees.join(outdegrees, "id")
+                .select(
+                        functions.col("id"),
+                        functions.col("indegree").divide(functions.col("outdegree")).as("transfertsRatio")
+                )
+                .orderBy(
+                        functions.abs(functions.col("transfertsRatio").minus(1))
+                );
+        inout.show(false);
+
+        
     }
 
 }
