@@ -16,6 +16,7 @@ import org.graphframes.GraphFrame;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import org.graphframes.lib.TriangleCount;
 
 public class Main {
 
@@ -77,7 +78,13 @@ public class Main {
                 );
         inout.show(false);
 
-        
+        System.out.println("----------------QUESTION 9----------------");
+        //Question 9
+        Dataset<Row> triplet = g.triangleCount().run();
+        triplet.orderBy(
+              functions.col("count").desc()
+        ).show(false);
+
     }
 
 }
