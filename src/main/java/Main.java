@@ -95,10 +95,11 @@ public class Main {
 
 
 
-        System.out.println("----------------QUESTION 11----------------");
+        System.out.println("----------------QUESTION 11_1----------------");
         //Question 11
         Dataset<Row> delay = spark.read().format("csv").option("header", "true").load("src/main/resources/q11-12.csv");
-        delay.select("ORIGIN","DEST").where("ORIGIN == SFO").orderBy(
+
+        delay = delay.filter("ORIGIN == 'SFO'").orderBy(
                 functions.col("DEP_DELAY").desc()
         );
         delay.show(false);
