@@ -55,7 +55,15 @@ public class Main {
         Dataset<Row> degrees = g.degrees();
         degrees.show(false);
 
-        
+        System.out.println("----------------QUESTION 6----------------");
+        //Question 6
+        Dataset<Row> indegrees = g.inDegrees();
+        indegrees.show(false);
+
+        System.out.println("----------------QUESTION 7----------------");
+        //Question 7
+        Dataset<Row> outdegrees = g.outDegrees();
+        outdegrees.show(false);
 
     }
 
