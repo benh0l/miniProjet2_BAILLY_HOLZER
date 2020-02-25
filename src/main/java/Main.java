@@ -18,7 +18,8 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import org.graphframes.lib.TriangleCount;
 
-import javax.xml.crypto.Data;
+import static org.apache.spark.sql.types.DataTypes.DoubleType;
+import static org.apache.spark.sql.types.DataTypes.StringType;
 
 public class Main {
 
@@ -29,8 +30,11 @@ public class Main {
         SparkSession spark = SparkSession
                 .builder()
                 .appName("SparkSessionExample")
+                .config("spark.sql.warehouse.dir", "/file:C:/temp")
+                .config("spark.sql.crossJoin.enabled", true)
                 .getOrCreate();
         SQLContext sqlContext = new org.apache.spark.sql.SQLContext(sc);
+        sc.setLogLevel("ERROR");
 
         StructType verSchema = new StructType().add("id", "int").add("Name", "string").add("City", "string").add("Country", "string").add("IATA", "string").add("ICAO", "string")
                 .add("Latitude", "double").add("Longitude", "double").add("Altitude", "int").add("Timezone", "int")
@@ -56,17 +60,17 @@ public class Main {
         System.out.println("----------------QUESTION 5----------------");
         //Question 5
         Dataset<Row> degrees = g.degrees();
-        degrees.show(false);
+        degrees.sort().show(false);
 
         System.out.println("----------------QUESTION 6----------------");
         //Question 6
         Dataset<Row> indegrees = g.inDegrees();
-        indegrees.show(false);
+        indegrees.sort().show(false);
 
         System.out.println("----------------QUESTION 7----------------");
         //Question 7
         Dataset<Row> outdegrees = g.outDegrees();
-        outdegrees.show(false);
+        outdegrees.sort().show(false);
 
         System.out.println("----------------QUESTION 8----------------");
         //Question 8
@@ -82,12 +86,10 @@ public class Main {
 
         System.out.println("----------------QUESTION 9----------------");
         //Question 9
-        /*
         Dataset<Row> triplet = g.triangleCount().run();
         triplet.orderBy(
                 functions.col("count").desc()
         ).show(false);
-        */
 
 
         System.out.println("----------------QUESTION 10----------------");
@@ -99,7 +101,18 @@ public class Main {
 
         System.out.println("----------------QUESTION 11_1----------------");
         //Question 11_1
-        Dataset<Row> delay = spark.read().format("csv").option("header", "true").load("src/main/resources/q11-12.csv");
+
+        StructType delaySchema = new StructType()
+                .add("ORIGIN_AIRPORT_ID", "string")
+                .add("ORIGIN", "string")
+                .add("DEST_AIRPORT_ID", "string")
+                .add("DEST", "string")
+                .add("DEP_DELAY", "double")
+                .add("DEP_DELAY_NEW", "double")
+                .add("DEP_DEL15", "double");
+
+        Dataset<Row> delay = spark.read().option("header", true).schema(delaySchema).csv("src/main/resources/q11-12.csv");
+
         Dataset<Row> delay2 = delay.filter("ORIGIN == 'SFO'").orderBy(
                 functions.col("DEP_DELAY").desc()
         );
@@ -107,14 +120,46 @@ public class Main {
 
         System.out.println("----------------QUESTION 11_2----------------");
         //Question 11_2
-        Dataset<Row> delay3 = delay.select(functions.col("DEST"),functions.avg(functions.col("DEP_DELAY")).as("moy"))
-                .filter("moy > 10")
-                .filter("ORIGIN == 'SEA'")
-                .groupBy(functions.col("DEST")).agg(
-                        functions.col("moy")
-                );
+
+        Dataset<Row> delay3 = delay.select("ORIGIN", "DEST","DEP_DELAY")
+                .filter("ORIGIN = 'SEA'")
+                .groupBy("DEST")
+                .avg("DEP_DELAY")
+                .filter("avg(DEP_DELAY) > 10")
+                .orderBy(functions.col("avg(DEP_DELAY)").desc());
         delay3.show(false);
 
+        System.out.println("----------------QUESTION 12_1----------------");
+        //Question 12_1
+
+        Dataset<Row> delay4 = delay.filter("ORIGIN = 'SFO'")
+                .filter("DEST = 'JAC'")
+                .join(
+                        delay.filter("ORIGIN = 'JAC'")
+                                .filter("DEST = 'SEA'")
+                );
+        delay4.show(false);
+
+        System.out.println("----------------QUESTION 12_2----------------");
+        //Question 12_2
+
+        Dataset<Row> delay5 = delay.select(functions.col("ORIGIN_AIRPORT_ID"),functions.col("ORIGIN"), functions.col("DEST_AIRPORT_ID"), functions.col("DEST"), functions.col("DEP_DELAY").as("delay1"))
+                .filter("ORIGIN = 'SFO'")
+                .filter("DEST = 'JAC'")
+                .join(
+                        delay.select(functions.col("ORIGIN_AIRPORT_ID"),functions.col("ORIGIN"), functions.col("DEST_AIRPORT_ID"), functions.col("DEST"), functions.col("DEP_DELAY").as("delay2"))
+                                .filter("ORIGIN = 'JAC'")
+                                .filter("DEST = 'SEA'")
+                ).filter("delay1 + delay2 < -5");
+        delay5.show(false);
+
+        System.out.println("----------------QUESTION 12_3----------------");
+        //Question 12_3
+
+        Dataset<Row> delay6 = delay.select("ORIGIN", "DEST")
+                .distinct()
+                .filter("ORIGIN = 'SFO'");
+        delay6.show(false);
     }
 
 }
