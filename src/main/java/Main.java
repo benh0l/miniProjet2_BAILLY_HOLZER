@@ -18,6 +18,8 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import org.graphframes.lib.TriangleCount;
 
+import javax.xml.crypto.Data;
+
 public class Main {
 
     public static void main(String[] args) throws JsonParseException, JsonMappingException, IOException {
@@ -96,13 +98,23 @@ public class Main {
 
 
         System.out.println("----------------QUESTION 11_1----------------");
-        //Question 11
+        //Question 11_1
         Dataset<Row> delay = spark.read().format("csv").option("header", "true").load("src/main/resources/q11-12.csv");
-
-        delay = delay.filter("ORIGIN == 'SFO'").orderBy(
+        Dataset<Row> delay2 = delay.filter("ORIGIN == 'SFO'").orderBy(
                 functions.col("DEP_DELAY").desc()
         );
-        delay.show(false);
+        delay2.show(false);
+
+        System.out.println("----------------QUESTION 11_2----------------");
+        //Question 11_2
+        Dataset<Row> delay3 = delay.select(functions.col("DEST"),functions.avg(functions.col("DEP_DELAY")).as("moy"))
+                .filter("moy > 10")
+                .filter("ORIGIN == 'SEA'")
+                .groupBy(functions.col("DEST")).agg(
+                        functions.col("moy")
+                );
+        delay3.show(false);
+
     }
 
 }
